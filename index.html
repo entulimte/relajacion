@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biofeedback: Autocontrol Deportivo</title>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-bg: #1e1e24;
+            --primary: #00adb5;
+            --text: #eeeeee;
+            --text-muted: #adb5bd;
+            --accent-red: #ff3b30;
+            --accent-green: #34c759;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        h1, h2 {
+            color: var(--primary);
+            margin-top: 0;
+            line-height: 1.2;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            background: #2a2a35;
+            border: 2px solid #3a3a45;
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            border-color: var(--primary);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 10px;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background: #2a2a35;
+            color: #555565;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Diseño de la interfaz de Medición (Cámara) */
+        .sensor-container {
+            position: relative;
+            background: #121214;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px dashed var(--text-muted);
+        }
+
+        .pulse-display {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: var(--accent-red);
+            margin: 15px 0;
+            text-shadow: 0 0 10px rgba(255, 59, 48, 0.3);
+        }
+
+        .sensor-status {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Ocultar elementos de video crudos */
+        video, canvas {
+            display: none;
+        }
+
+        /* Pantalla de Ejercicio */
+        .timer {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .phase-text {
+            font-size: 1.5rem;
+            min-height: 36px;
+            margin-bottom: 30px;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .sphere-container {
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 30px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .sphere {
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #00fff2 0%, #00adb5 70%, #007a80 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(0, 173, 181, 0.6);
+            transition: transform 1s ease-in-out;
+        }
+
+        /* Pantalla de Resultados */
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+        }
+
+        .results-table th, .results-table td {
+            padding: 12px;
+            border: 1px solid #3a3a45;
+            text-align: center;
+        }
+
+        .results-table th {
+            background: #2a2a35;
+            color: var(--text-muted);
+        }
+
+        .pulse-change {
+            font-size: 1.2rem;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- PANTALLA 1: CONFIGURACIÓN GENERAL -->
+    <div id="screen-setup" class="screen active">
+        <h1>Autocontrol Biofeedback</h1>
+        <p style="color: var(--text-muted); margin-bottom: 25px;">Configura tu sesión de entrenamiento para calmar tu sistema nervioso.</p>
+
+        <div class="form-group">
+            <label for="duration">Elige la duración del ejercicio:</label>
+            <select id="duration"></select>
+        </div>
+
+        <div class="form-group">
+            <label for="resp-rate">Ritmo de respiración (por minuto):</label>
+            <select id="resp-rate"></select>
+        </div>
+
+        <button id="btn-go-to-pre-measure">Siguiente: Medir Ritmo Base</button>
+    </div>
+
+    <!-- PANTALLA 2: MEDICIÓN INICIAL (PRE-EJERCICIO) -->
+    <div id="screen-pre-measure" class="screen">
+        <h2>Paso 1: Ritmo Base</h2>
+        <p style="color: var(--text-muted);">Mide tu pulso actual. Coloca tu dedo índice cubriendo completamente la cámara trasera y el flash.</p>
+
+        <div class="sensor-container">
+            <div class="pulse-display" id="pre-bpm-display">-- <span style="font-size: 1.5rem;">BPM</span></div>
+            <p class="sensor-status" id="pre-status-text">Sensor listo para iniciar.</p>
+        </div>
+
+        <button id="btn-pre-sensor">Iniciar Medición</button>
+        <button id="btn-start-exercise" disabled style="margin-top: 15px; background: var(--accent-green);">Comenzar Ejercicio</button>
+    </div>
+
+    <!-- PANTALLA 3: EJERCICIO DE RESPIRACIÓN -->
+    <div id="screen-exercise" class="screen">
+        <div class="timer" id="time-display">00:00</div>
+        <div class="phase-text" id="phase-display">Prepárate...</div>
+        
+        <div class="sphere-container">
+            <div class="sphere" id="breathing-sphere"></div>
+        </div>
+    </div>
+
+    <!-- PANTALLA 4: MEDICIÓN FINAL (POST-EJERCICIO) -->
+    <div id="screen-post-measure" class="screen">
+        <h2>Paso 2: Ritmo Final</h2>
+        <p style="color: var(--text-muted);">¡Buen trabajo! Vamos a medir tu pulso final. Coloca tu dedo sobre la cámara y el flash.</p>
+        
+        <div class="sensor-container">
+            <div class="pulse-display" id="post-bpm-display">-- <span style="font-size: 1.5rem;">BPM</span></div>
+            <p class="sensor-status" id="post-status-text">Sensor listo para iniciar.</p>
+        </div>
+        
+        <button id="btn-post-sensor">Iniciar Medición</button>
+        <button id="btn-save-post" disabled style="margin-top: 15px; background: var(--accent-green);">Ver Resultados</button>
+    </div>
+
+    <!-- PANTALLA 5: COMPARATIVA Y RESULTADOS -->
+    <div id="screen-results" class="screen">
+        <h2>Autocontrol Logrado</h2>
+        
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Momento</th>
+                    <th>Ritmo Cardíaco</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Pre-Ejercicio</td>
+                    <td id="res-pre" style="font-weight: bold;">-- BPM</td>
+                </tr>
+                <tr>
+                    <td>Post-Ejercicio</td>
+                    <td id="res-post" style="font-weight: bold; color: var(--primary);">-- BPM</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="pulse-change" id="pulse-diff"></div>
+
+        <button id="btn-restart" style="margin-top: 30px;">Realizar nuevamente ejercicio</button>
+    </div>
+
+    <!-- ELEMENTOS OCULTOS PARA EL PROCESAMIENTO BIOLÓGICO -->
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" width="100" height="100"></canvas>
+
+</div>
+
+<script>
+    // --- Referencias de la Interfaz ---
+    const durationSelect = document.getElementById('duration');
+    const respRateSelect = document.getElementById('resp-rate');
+    
+    const preBpmDisplay = document.getElementById('pre-bpm-display');
+    const preStatusText = document.getElementById('pre-status-text');
+    const btnPreSensor = document.getElementById('btn-pre-sensor');
+    const btnStartExercise = document.getElementById('btn-start-exercise');
+
+    const postBpmDisplay = document.getElementById('post-bpm-display');
+    const postStatusText = document.getElementById('post-status-text');
+    const btnPostSensor = document.getElementById('btn-post-sensor');
+    const btnSavePost = document.getElementById('btn-save-post');
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Variables de Estado Médico y Lógica
+    let prePulseVal = 0;
+    let postPulseVal = 0;
+    let totalSeconds = 0;
+    let timeRemaining = 0;
+    let timerInterval = null;
+    let breathingInterval = null;
+
+    // Variables del Sensor PPG
+    let stream = null;
+    let animationFrameId = null;
+    let lastRedValues = [];
+    let lastHeartbeats = [];
+    const threshold = 1.6; // Sensibilidad de detección de la onda pulsátil
+
+    // --- Rellenado Dinámico de Selectores ---
+    // Llenar duración (5 a 30 minutos)
+    for (let i = 5; i <= 30; i++) {
+        let opt = new Option(`${i} minutos`, i * 60);
+        if(i === 5) opt.selected = true;
+        durationSelect.add(opt);
+    }
+
+    // Llenar ritmo respiratorio (4 a 15 por minuto)
+    for (let i = 4; i <= 15; i++) {
+        let opt = new Option(`${i} respiraciones / min`, i);
+        if(i === 6) opt.selected = true; // El estándar de coherencia
+        respRateSelect.add(opt);
+    }
+
+    // --- Control de Pantallas ---
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    // --- LÓGICA DE SENSOR POR CÁMARA (PPG) ---
+    async function startPPGSensor(type) {
+        lastRedValues = [];
+        lastHeartbeats = [];
+        
+        let statusEl = type === 'pre' ? preStatusText : postStatusText;
+        let displayEl = type === 'pre' ? preBpmDisplay : postBpmDisplay;
+        let sensorBtn = type === 'pre' ? btnPreSensor : btnPostSensor;
+
+        try {
+            statusEl.innerText = "Solicitando cámara... Por favor, concede los permisos.";
+            
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: "environment", // Lente trasero
+                    width: { ideal: 100 },
+                    height: { ideal: 100 }
+                }
+            });
+            
+            video.srcObject = stream;
+            
+            // Intento de encender el flash si el móvil lo permite
+            const track = stream.getVideoTracks()[0];
+            const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+            if (capabilities.torch) {
+                await track.applyConstraints({ advanced: [{ torch: true }] });
+            }
+
+            statusEl.innerText = "Cargando. Coloca tu dedo cubriendo el lente y el flash firmemente.";
+            sensorBtn.innerText = "Detener Sensor";
+            sensorBtn.style.backgroundColor = "var(--accent-red)";
+
+            // Iniciamos el ciclo de captura y análisis matemático
+            analyzePPG(type);
+
+        } catch (err) {
+            console.error("Fallo del sensor PPG:", err);
+            statusEl.innerText = "Error: No se pudo encender la cámara trasera. Asegúrate de estar en un enlace seguro HTTPS.";
+        }
+    }
+
+    function stopPPGSensor(type) {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        cancelAnimationFrame(animationFrameId);
+        
+        let sensorBtn = type === 'pre' ? btnPreSensor : btnPostSensor;
+        sensorBtn.innerText = "Iniciar Medición";
+        sensorBtn.style.backgroundColor = "var(--primary)";
+    }
+
+    function analyzePPG(type) {
+        if (!stream) return;
+
+        // Pintar frame actual en el canvas oculto para procesar el array de píxeles
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+
+        let totalRed = 0;
+        let pixelCount = data.length / 4;
+
+        // Analizar sólo el canal rojo (R) de cada píxel
+        for (let i = 0; i < data.length; i += 4) {
+            totalRed += data[i];
+        }
+
+        let averageRed = totalRed / pixelCount;
+        
+        // Registrar y buscar pulso cardíaco
+        detectBPM(averageRed, type);
+
+        animationFrameId = requestAnimationFrame(() => analyzePPG(type));
+    }
+
+    function detectBPM(currentRed, type) {
+        lastRedValues.push(currentRed);
+        if (lastRedValues.length > 250) lastRedValues.shift(); // Evita saturar la memoria
+        if (lastRedValues.length < 30) return; // Esperar a tener lecturas suficientes
+
+        let statusEl = type === 'pre' ? preStatusText : postStatusText;
+
+        // Analizamos si el promedio de píxeles cubre el tono rojo de la piel
+        if (currentRed < 100) {
+            statusEl.innerText = "Coloca tu dedo firmemente cubriendo el lente de la cámara.";
+            return;
+        } else {
+            statusEl.innerText = "Analizando flujo sanguíneo... Mantén la calma.";
+        }
+
+        const avg = lastRedValues.reduce((a, b) => a + b) / lastRedValues.length;
+        const diff = currentRed - avg;
+
+        if (diff > threshold) {
+            const now = Date.now();
+            
+            // Protección antirruido (máximo fisiológico de 220 lpm)
+            if (lastHeartbeats.length === 0 || (now - lastHeartbeats[lastHeartbeats.length - 1]) > 270) {
+                lastHeartbeats.push(now);
+                if (lastHeartbeats.length > 8) lastHeartbeats.shift();
+
+                processBPMArray(type);
+            }
+        }
+    }
+
+    function processBPMArray(type) {
+        if (lastHeartbeats.length < 3) return;
+
+        let intervals = [];
+        for (let i = 1; i < lastHeartbeats.length; i++) {
+            intervals.push(lastHeartbeats[i] - lastHeartbeats[i - 1]);
+        }
+
+        const avgInterval = intervals.reduce((a, b) => a + b) / intervals.length;
+        const bpm = Math.round(60000 / avgInterval);
+
+        // Validar que esté en rangos biológicos realistas
+        if (bpm >= 45 && bpm <= 140) {
+            let displayEl = type === 'pre' ? preBpmDisplay : postBpmDisplay;
+            let startBtn = type === 'pre' ? btnStartExercise : btnSavePost;
+            let statusEl = type === 'pre' ? preStatusText : postStatusText;
+
+            displayEl.innerHTML = `${bpm} <span style="font-size: 1.5rem;">BPM</span>`;
+            
+            // Guardar lecturas finales
+            if (type === 'pre') {
+                prePulseVal = bpm;
+            } else {
+                postPulseVal = bpm;
+            }
+
+            // Habilitar el avance sólo cuando tenemos una lectura estable
+            if (lastHeartbeats.length >= 6) {
+                startBtn.disabled = false;
+                statusEl.innerHTML = "<span style='color: var(--accent-green); font-weight: bold;'>¡Medición Estable Registrada! Siguiente paso disponible.</span>";
+            }
+        }
+    }
+
+    // --- Flujo de Navegación del Usuario ---
+
+    // Setup -> Pre-Medición
+    document.getElementById('btn-go-to-pre-measure').addEventListener('click', () => {
+        prePulseVal = 0;
+        btnStartExercise.disabled = true;
+        preBpmDisplay.innerHTML = `-- <span style="font-size: 1.5rem;">BPM</span>`;
+        preStatusText.innerText = "Sensor listo. Presiona 'Iniciar Medición'.";
+        showScreen('screen-pre-measure');
+    });
+
+    // Control del botón de sensor Pre-ejercicio
+    btnPreSensor.addEventListener('click', () => {
+        if (stream) {
+            stopPPGSensor('pre');
+        } else {
+            startPPGSensor('pre');
+        }
+    });
+
+    // Pre-Medición -> Pantalla de Ejercicio
+    btnStartExercise.addEventListener('click', () => {
+        stopPPGSensor('pre'); // Asegurar apagar la cámara
+
+        totalSeconds = parseInt(durationSelect.value);
+        timeRemaining = totalSeconds;
+        
+        const respRate = parseInt(respRateSelect.value);
+        const cycleDuration = 60 / respRate; 
+        
+        const inhaleTime = cycleDuration * 0.45;
+        const holdTime = cycleDuration * 0.10;
+        const exhaleTime = cycleDuration * 0.45;
+
+        document.getElementById('time-display').innerText = formatTime(timeRemaining);
+        showScreen('screen-exercise');
+
+        // Reloj de la sesión
+        timerInterval = setInterval(() => {
+            timeRemaining--;
+            document.getElementById('time-display').innerText = formatTime(timeRemaining);
+            
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                clearInterval(breathingInterval);
+                
+                playEndSound();
+                triggerVibration();
+                
+                setTimeout(() => {
+                    alert("Excelente respiración. Vamos a medir cómo reaccionó tu corazón.");
+                    // Resetear la pantalla de post-medición antes de mostrarla
+                    postPulseVal = 0;
+                    btnSavePost.disabled = true;
+                    postBpmDisplay.innerHTML = `-- <span style="font-size: 1.5rem;">BPM</span>`;
+                    postStatusText.innerText = "Sensor listo para iniciar.";
+                    showScreen('screen-post-measure');
+                }, 100);
+            }
+        }, 1000);
+
+        const sphere = document.getElementById('breathing-sphere');
+        const phaseDisplay = document.getElementById('phase-display');
+
+        function runBreathingCycle() {
+            if (timeRemaining <= 0) return;
+            
+            // Inhalar
+            phaseDisplay.innerText = "Inhala profundamente...";
+            sphere.style.transition = `transform ${inhaleTime}s ease-in-out`;
+            sphere.style.transform = "scale(3.5)";
+
+            // Sostener
+            setTimeout(() => {
+                if (timeRemaining <= 0) return;
+                phaseDisplay.innerText = "Sostén el aire...";
+            }, inhaleTime * 1000);
+
+            // Exhalar
+            setTimeout(() => {
+                if (timeRemaining <= 0) return;
+                phaseDisplay.innerText = "Sueltas despacio...";
+                sphere.style.transition = `transform ${exhaleTime}s ease-in-out`;
+                sphere.style.transform = "scale(1)";
+            }, (inhaleTime + holdTime) * 1000);
+        }
+
+        runBreathingCycle();
+        breathingInterval = setInterval(runBreathingCycle, cycleDuration * 1000);
+    });
+
+    // Control del botón de sensor Post-ejercicio
+    btnPostSensor.addEventListener('click', () => {
+        if (stream) {
+            stopPPGSensor('post');
+        } else {
+            startPPGSensor('post');
+        }
+    });
+
+    // Post-Medición -> Resultados
+    btnSavePost.addEventListener('click', () => {
+        stopPPGSensor('post');
+
+        document.getElementById('res-pre').innerText = `${prePulseVal} BPM`;
+        document.getElementById('res-post').innerText = `${postPulseVal} BPM`;
+
+        const diffDisplay = document.getElementById('pulse-diff');
+        const diff = prePulseVal - postPulseVal;
+
+        if (diff > 0) {
+            diffDisplay.innerText = `¡Tu ritmo cardíaco disminuyó por ${diff} BPM! Felicidades, dominaste tu fisiología.`;
+            diffDisplay.style.color = "var(--accent-green)";
+        } else if (diff < 0) {
+            diffDisplay.innerText = `Tu ritmo cardíaco varió en ${Math.abs(diff)} BPM. Sigue practicando la calma.`;
+            diffDisplay.style.color = "#ffb703";
+        } else {
+            diffDisplay.innerText = "Tu ritmo cardíaco se mantuvo estable. Buen nivel de balance.";
+            diffDisplay.style.color = "var(--text)";
+        }
+
+        showScreen('screen-results');
+    });
+
+    // Reiniciar
+    document.getElementById('btn-restart').addEventListener('click', () => {
+        showScreen('screen-setup');
+    });
+
+    // --- Efectos Fisiológicos Auxiliares ---
+    function playEndSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.8);
+        } catch (e) {
+            console.log("Audio de retorno bloqueado.");
+        }
+    }
+
+    function triggerVibration() {
+        if ("vibrate" in navigator) {
+            navigator.vibrate([300, 100, 300]);
+        }
+    }
+
+    function formatTime(secs) {
+        let mins = Math.floor(secs / 60);
+        let seconds = secs % 60;
+        return `${mins.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+</script>
+
+</body>
+</html>
