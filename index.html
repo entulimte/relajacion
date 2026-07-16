@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medidor de Pulso Cardíaco</title>
+    <title>Entrenamiento de Pulso - 1 Minuto</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -28,24 +28,23 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
         h1 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
+            font-size: 1.6rem;
+            margin-bottom: 5px;
             color: #ff4757;
         }
-        p {
-            font-size: 0.95rem;
+        .subtitle {
+            font-size: 0.9rem;
             color: #a4b0be;
-            margin-bottom: 25px;
-            line-height: 1.4;
+            margin-bottom: 20px;
         }
         #video-container {
             position: relative;
-            width: 150px;
-            height: 150px;
-            margin: 0 auto 25px;
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
             border-radius: 50%;
             overflow: hidden;
-            border: 5px solid #ff4757;
+            border: 4px solid #ff4757;
             background: #000;
         }
         video {
@@ -53,18 +52,39 @@
             height: 100%;
             object-fit: cover;
         }
+        .timer {
+            font-size: 1.2rem;
+            color: #ffa502;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .progress-bar-container {
+            width: 100%;
+            background-color: #2f3542;
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #ffa502;
+            transition: width 1s linear;
+        }
         .bpm-display {
             font-size: 4rem;
             font-weight: bold;
             color: #ff4757;
-            margin: 15px 0;
+            margin: 10px 0;
             line-height: 1;
         }
         .bpm-unit {
-            font-size: 1.2rem;
+            font-size: 1rem;
             color: #a4b0be;
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin-bottom: 20px;
         }
         .btn {
             background-color: #ff4757;
@@ -79,9 +99,6 @@
             box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
             width: 100%;
         }
-        .btn:active {
-            transform: scale(0.98);
-        }
         .btn:disabled {
             background-color: #57606f;
             box-shadow: none;
@@ -90,28 +107,53 @@
         #status {
             margin-top: 15px;
             font-size: 0.85rem;
-            color: #ffa502;
+            color: #a4b0be;
+            min-height: 35px;
         }
-        canvas {
+        .results-box {
+            background: #2f3542;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
             display: none;
         }
+        .results-title {
+            color: #2ed573;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        canvas { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Medidor de Pulso</h1>
-    <p>Coloca la yema de tu dedo índice tapando por completo el lente de la cámara trasera de tu celular.</p>
+    <h1>Control de Pulso</h1>
+    <div class="subtitle">Prueba de Estabilidad (1 Minuto)</div>
     
     <div id="video-container">
         <video id="webcam" autoplay playsinline muted></video>
     </div>
 
-    <div class="bpm-display" id="bpm-val">--</div>
-    <div class="bpm-unit" id="bpm-lbl">BPM</div>
+    <div class="timer" id="timer-txt">Tiempo restante: 60s</div>
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="p-bar"></div>
+    </div>
 
-    <button class="btn" id="start-btn">INICIAR MEDICIÓN</button>
-    <div id="status">Presiona iniciar y acepta los permisos de cámara.</div>
+    <div class="bpm-display" id="bpm-val">--</div>
+    <div class="bpm-unit" id="bpm-lbl">BPM Actual</div>
+
+    <button class="btn" id="start-btn">INICIAR PRUEBA</button>
+    
+    <div id="status">Ubica la cámara trasera con buena luz ambiental antes de iniciar.</div>
+
+    <div class="results-box" id="results-panel">
+        <div class="results-title">✓ PRUEBA COMPLETADA</div>
+        <div style="font-size: 0.9rem; color: #f1f2f6;">
+            Tu promedio final fue de:<br>
+            <span style="font-size: 2rem; font-weight: bold; color: #2ed573;" id="avg-val">--</span> BPM
+        </div>
+    </div>
 </div>
 
 <canvas id="analyzer-canvas" width="100" height="100"></canvas>
@@ -122,165 +164,172 @@
     const ctx = canvas.getContext('2d');
     const startBtn = document.getElementById('start-btn');
     const bpmVal = document.getElementById('bpm-val');
-    const bpmLbl = document.getElementById('bpm-lbl');
     const statusText = document.getElementById('status');
+    const timerTxt = document.getElementById('timer-txt');
+    const progressBar = document.getElementById('p-bar');
+    const resultsPanel = document.getElementById('results-panel');
+    const avgVal = document.getElementById('avg-val');
 
     let stream = null;
     let track = null;
     let isRunning = false;
     let frameInterval = null;
+    let countdownInterval = null;
     
-    // Algoritmo PPG sencillo
     let rValues = [];
     let times = [];
-    const maxDataPoints = 150; 
+    let allValidBpms = []; // Para sacar el promedio final
+    const maxDataPoints = 120; 
     let lastBpm = 0;
+    let timeLeft = 60;
 
     startBtn.addEventListener('click', async () => {
         if (isRunning) {
-            stopMeasurement();
+            stopMeasurement(false);
             return;
         }
 
         startBtn.disabled = true;
-        statusText.textContent = "Accediendo a la cámara trasera...";
+        resultsPanel.style.display = "none";
+        statusText.textContent = "Abriendo cámara...";
+        allValidBpms = [];
+        timeLeft = 60;
+        timerTxt.textContent = `Tiempo restante: ${timeLeft}s`;
+        progressBar.style.width = "0%";
 
         try {
-            // Forzar cámara trasera ('environment')
             stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: { exact: "environment" },
+                    facingMode: "environment",
                     width: { ideal: 300 },
                     height: { ideal: 300 }
                 }
-            }).catch(async () => {
-                // Alternativa por si falla la trasera exacta
-                return await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "environment" }
-                });
             });
 
             video.srcObject = stream;
             track = stream.getVideoTracks()[0];
 
-            // Forzar encendido de Flash (Torch)
+            // Intento de flash por si acaso
             setTimeout(async () => {
-                try {
-                    await track.applyConstraints({
-                        advanced: [{ torch: true }]
-                    });
-                    statusText.textContent = "Cámara y Flash activados. Coloca tu dedo sobre el lente.";
-                } catch (err) {
-                    console.log("No se pudo encender el flash automáticamente:", err);
-                    statusText.textContent = "Cámara lista. Usa una luz fuerte si el flash no encendió.";
-                }
+                try { await track.applyConstraints({ advanced: [{ torch: true }] }); } catch (e) {}
             }, 1000);
 
-            startBtn.textContent = "DETENER";
+            startBtn.textContent = "ABORTAR";
             startBtn.disabled = false;
             isRunning = true;
             rValues = [];
             times = [];
+            lastBpm = 0;
             
-            // Comenzar procesamiento de frames
-            frameInterval = setInterval(processFrame, 1000 / 30); // 30 FPS
+            frameInterval = setInterval(processFrame, 1000 / 30);
+            
+            // Lógica del Reloj de 1 minuto
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                timerTxt.textContent = `Tiempo restante: ${timeLeft}s`;
+                progressBar.style.width = `${((60 - timeLeft) / 60) * 100}%`;
+
+                if (timeLeft <= 0) {
+                    stopMeasurement(true); // Terminado con éxito
+                }
+            }, 1000);
+
+            statusText.textContent = "Coloca firmemente tu dedo cubriendo el lente.";
 
         } catch (error) {
-            console.error(error);
-            statusText.textContent = "Error al abrir la cámara. Revisa los permisos.";
+            statusText.textContent = "Error de acceso a cámara trasera.";
             startBtn.disabled = false;
         }
     });
 
-    function stopMeasurement() {
+    function stopMeasurement(isCompleted = false) {
         isRunning = false;
         clearInterval(frameInterval);
-        if (track) {
-            try { track.applyConstraints({ advanced: [{ torch: false }] }); } catch(e){}
-            track.stop();
-        }
-        if (stream) {
-            stream.getTracks().forEach(t => t.stop());
-        }
+        clearInterval(countdownInterval);
+        
+        if (track) { try { track.stop(); } catch(e){} }
+        if (stream) { stream.getTracks().forEach(t => t.stop()); }
         video.srcObject = null;
-        startBtn.textContent = "INICIAR MEDICIÓN";
-        statusText.textContent = "Medición detenida.";
+        
+        startBtn.textContent = "INICIAR PRUEBA";
         bpmVal.textContent = "--";
+        
+        if (isCompleted) {
+            statusText.textContent = "Ejercicio finalizado con éxito.";
+            if (allValidBpms.length > 0) {
+                const sum = allValidBpms.reduce((a, b) => a + b, 0);
+                const avg = Math.round(sum / allValidBpms.length);
+                avgVal.textContent = avg;
+                resultsPanel.style.display = "block";
+            } else {
+                statusText.textContent = "Prueba terminada, pero no se captaron suficientes datos estables. Inténtalo de nuevo presionando mejor el lente.";
+            }
+        } else {
+            statusText.textContent = "Medición abortada por el usuario.";
+        }
     }
 
     function processFrame() {
         if (!isRunning || video.paused || video.ended) return;
 
-        // Dibujar frame en un canvas pequeño para analizar píxeles
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imgData.data;
 
         let totalRed = 0;
-        let count = 0;
-
-        // Sumar canal Rojo (R)
         for (let i = 0; i < data.length; i += 4) {
             totalRed += data[i];
-            count++;
         }
 
-        const avgRed = totalRed / count;
-        const now = performance.now();
-
+        const avgRed = totalRed / (data.length / 4);
         rValues.push(avgRed);
-        times.push(now);
+        times.push(performance.now());
 
         if (rValues.length > maxDataPoints) {
             rValues.shift();
             times.shift();
         }
 
-        // Analizar pulso solo si hay suficientes datos
-        if (rValues.length >= 100) {
+        if (rValues.length >= 80) {
             calculateBPM();
         }
     }
 
     function calculateBPM() {
-        // Encontrar picos en el flujo de color rojo
         let peaks = [];
-        const threshold = 0.3; // Sensibilidad al cambio
-        
-        // Filtro básico de suavizado
         let smoothValues = [];
-        for (let i = 2; i < rValues.length - 2; i++) {
-            let val = (rValues[i-2] + rValues[i-1] + rValues[i] + rValues[i+1] + rValues[i+2]) / 5;
+        
+        // Suavizado incrementado para amortiguar la falta de flash
+        for (let i = 3; i < rValues.length - 3; i++) {
+            let val = (rValues[i-3] + rValues[i-2] + rValues[i-1] + rValues[i] + rValues[i+1] + rValues[i+2] + rValues[i+3]) / 7;
             smoothValues.push({val: val, time: times[i]});
         }
 
-        // Buscar picos locales
         for (let i = 1; i < smoothValues.length - 1; i++) {
             if (smoothValues[i].val > smoothValues[i-1].val && smoothValues[i].val > smoothValues[i+1].val) {
                 peaks.push(smoothValues[i].time);
             }
         }
 
-        if (peaks.length >= 2) {
+        if (peaks.length >= 3) {
             let intervals = [];
             for (let i = 1; i < peaks.length; i++) {
                 intervals.push(peaks[i] - peaks[i-1]);
             }
             
-            // Promedio de intervalos en milisegundos
             const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-            
-            // Calcular BPM (60,000 ms / intervalo promedio)
             let bpm = Math.round(60000 / avgInterval);
 
-            // Filtrar lecturas irreales (normal para humanos: 45 - 160 BPM en reposo/ejercicio leve)
-            if (bpm >= 45 && bpm <= 165) {
-                // Suavizar el valor mostrado combinándolo con la lectura anterior
+            // Filtro estricto para evitar saltos locos sin flash (rango normal)
+            if (bpm >= 50 && bpm <= 150) {
                 if (lastBpm === 0) lastBpm = bpm;
-                lastBpm = Math.round(lastBpm * 0.8 + bpm * 0.2);
+                
+                // Amortiguación fuerte: el valor nuevo solo cambia un 10% del mostrado
+                lastBpm = Math.round(lastBpm * 0.9 + bpm * 0.1);
                 
                 bpmVal.textContent = lastBpm;
-                statusText.textContent = "Midiendo... Mantén el dedo firme y quieto.";
+                allValidBpms.push(lastBpm); // Guardando para el promedio final
+                statusText.textContent = "Mantén el dedo bien quieto frente a una luz estable...";
             }
         }
     }
