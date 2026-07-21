@@ -3,515 +3,335 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biofeedback Integrado - Respiración & ECG</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Entrenamiento de Pulso - 1 Minuto</title>
     <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --primary: #38bdf8;
-            --text: #f8fafc;
-            --accent: #22c55e;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
             flex-direction: column;
-            align-items: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 600px;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            box-sizing: border-box;
-        }
-
-        h1 {
-            text-align: center;
-            font-size: 1.4rem;
-            margin-bottom: 20px;
-            color: var(--primary);
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }
-
-        select, input, button {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #334155;
-            background: #0f172a;
-            color: var(--text);
-            font-size: 1rem;
-            box-sizing: border-box;
-        }
-
-        button {
-            background: var(--primary);
-            color: #0f172a;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            margin-top: 10px;
-            transition: background 0.2s;
-        }
-
-        button:hover {
-            filter: brightness(1.1);
-        }
-
-        .hidden { display: none !important; }
-
-        /* Pantalla de entrenamiento */
-        .workspace {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .breathe-container {
-            width: 180px;
-            height: 180px;
-            display: flex;
             align-items: center;
             justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #121212;
+            color: #ffffff;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 5px;
+            color: #ff4757;
+        }
+        .subtitle {
+            font-size: 0.9rem;
+            color: #a4b0be;
+            margin-bottom: 20px;
+        }
+        #video-container {
             position: relative;
-        }
-
-        .breathe-circle {
-            width: 60px;
-            height: 60px;
-            background: radial-gradient(circle, var(--primary) 0%, rgba(56,189,248,0.2) 100%);
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
             border-radius: 50%;
-            transition: transform 0.1s linear;
-            box-shadow: 0 0 20px var(--primary);
-        }
-
-        .breathe-text {
-            position: absolute;
-            font-weight: bold;
-            font-size: 1rem;
-            pointer-events: none;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-        }
-
-        canvas.ecg-live {
-            width: 100%;
-            height: 120px;
+            overflow: hidden;
+            border: 4px solid #ff4757;
             background: #000;
-            border-radius: 8px;
-            border: 1px solid #334155;
         }
-
         video {
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            position: absolute;
-        }
-
-        /* Reportes */
-        .results-table {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
+            height: 100%;
+            object-fit: cover;
         }
-
-        .results-table th, .results-table td {
-            border: 1px solid #334155;
-            padding: 8px;
-            text-align: center;
-            font-size: 0.85rem;
-        }
-
-        .results-table th {
-            background: #0f172a;
-        }
-
-        .timer-display {
+        .timer {
             font-size: 1.2rem;
+            color: #ffa502;
             font-weight: bold;
-            text-align: center;
-            color: var(--accent);
+            margin-bottom: 10px;
         }
+        .progress-bar-container {
+            width: 100%;
+            background-color: #2f3542;
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #ffa502;
+            transition: width 1s linear;
+        }
+        .bpm-display {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #ff4757;
+            margin: 10px 0;
+            line-height: 1;
+        }
+        .bpm-unit {
+            font-size: 1rem;
+            color: #a4b0be;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background-color: #ff4757;
+            color: white;
+            border: none;
+            padding: 15px 35px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+            width: 100%;
+        }
+        .btn:disabled {
+            background-color: #57606f;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: #a4b0be;
+            min-height: 35px;
+        }
+        .results-box {
+            background: #2f3542;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        .results-title {
+            color: #2ed573;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        canvas { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Biofeedback & Coherencia</h1>
-
-    <!-- PANTALLA 1: CONFIGURACIÓN -->
-    <div id="setup-screen">
-        <div class="form-group">
-            <label for="duration">Duración del ejercicio:</label>
-            <select id="duration">
-                <!-- Generado dinámicamente de 1 a 30 min -->
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="bpm-rate">Ritmo de respiración:</label>
-            <select id="bpm-rate">
-                <option value="0">Normal (Sin guía fija)</option>
-                <!-- Generado dinámicamente de 1 a 20 resp/min -->
-            </select>
-        </div>
-
-        <button id="btn-start">Iniciar Entrenamiento</button>
+    <h1>Control de Pulso</h1>
+    <div class="subtitle">Prueba de Estabilidad (1 Minuto)</div>
+    
+    <div id="video-container">
+        <video id="webcam" autoplay playsinline muted></video>
     </div>
 
-    <!-- PANTALLA 2: ENTRENAMIENTO -->
-    <div id="train-screen" class="workspace hidden">
-        <div class="timer-display" id="timer">00:00</div>
-        
-        <!-- Guía visual de respiración -->
-        <div class="breathe-container">
-            <div class="breathe-circle" id="breathe-ball"></div>
-            <div class="breathe-text" id="breathe-label">Inhala</div>
-        </div>
-
-        <!-- Trazo tipo ECG en vivo -->
-        <label style="width: 100%; text-align: left;">Pulso en tiempo real (Pone el dedo en la cámara):</label>
-        <canvas id="ecg-canvas" class="ecg-live" width="500" height="120"></canvas>
-        
-        <div id="hr-display" style="font-size: 0.9rem;">BPM estimado: --</div>
-
-        <button id="btn-stop" style="background: #ef4444; color: #fff;">Finalizar Sesión</button>
+    <div class="timer" id="timer-txt">Tiempo restante: 60s</div>
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="p-bar"></div>
     </div>
 
-    <!-- PANTALLA 3: REPORTES -->
-    <div id="report-screen" class="hidden">
-        <h2>Resultados de la Sesión</h2>
-        
-        <canvas id="comparison-chart" width="500" height="250"></canvas>
+    <div class="bpm-display" id="bpm-val">--</div>
+    <div class="bpm-unit" id="bpm-lbl">BPM Actual</div>
 
-        <table class="results-table">
-            <thead>
-                <tr>
-                    <th>Sesión</th>
-                    <th>Color</th>
-                    <th>BPM Prom.</th>
-                    <th>Duración</th>
-                </tr>
-            </thead>
-            <tbody id="table-body">
-            </tbody>
-        </table>
+    <button class="btn" id="start-btn">INICIAR PRUEBA</button>
+    
+    <div id="status">Ubica la cámara trasera con buena luz ambiental antes de iniciar.</div>
 
-        <button id="btn-restart">Nueva Sesión</button>
+    <div class="results-box" id="results-panel">
+        <div class="results-title">✓ PRUEBA COMPLETADA</div>
+        <div style="font-size: 0.9rem; color: #f1f2f6;">
+            Tu promedio final fue de:<br>
+            <span style="font-size: 2rem; font-weight: bold; color: #2ed573;" id="avg-val">--</span> BPM
+        </div>
     </div>
 </div>
 
-<video id="webcam" playsinline></video>
-<canvas id="capture-canvas" width="30" height="30" class="hidden"></canvas>
+<canvas id="analyzer-canvas" width="100" height="100"></canvas>
 
 <script>
-    // --- POBLAR SELECTS ---
-    const durationSelect = document.getElementById('duration');
-    for (let i = 1; i <= 30; i++) {
-        let opt = document.createElement('option');
-        opt.value = i;
-        opt.innerText = `${i} minuto${i > 1 ? 's' : ''}`;
-        durationSelect.appendChild(opt);
-    }
-
-    const bpmRateSelect = document.getElementById('bpm-rate');
-    for (let i = 1; i <= 20; i++) {
-        let opt = document.createElement('option');
-        opt.value = i;
-        opt.innerText = `${i} respiracione${i > 1 ? 's' : 'ón'} / min`;
-        bpmRateSelect.appendChild(opt);
-    }
-
-    // --- VARIABLES DE ESTADO ---
-    let stream = null;
-    let animFrameECG = null;
-    let animFrameBreathe = null;
-    let timerInterval = null;
-    let sessionData = [];
-    let currentPulseValues = [];
-    let sessionCount = 0;
-    
-    // Configuración de colores para las gráficas comparativas
-    const palette = ['#38bdf8', '#22c55e', '#f59e0b', '#ec4899', '#a855f7'];
-
-    // Elementos DOM
-    const setupScreen = document.getElementById('setup-screen');
-    const trainScreen = document.getElementById('train-screen');
-    const reportScreen = document.getElementById('report-screen');
     const video = document.getElementById('webcam');
-    const captureCanvas = document.getElementById('capture-canvas');
-    const captureCtx = captureCanvas.getContext('2d');
-    const ecgCanvas = document.getElementById('ecg-canvas');
-    const ecgCtx = ecgCanvas.getContext('2d');
-    const breatheBall = document.getElementById('breathe-ball');
-    const breatheLabel = document.getElementById('breathe-label');
-    const timerDisplay = document.getElementById('timer');
+    const canvas = document.getElementById('analyzer-canvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('start-btn');
+    const bpmVal = document.getElementById('bpm-val');
+    const statusText = document.getElementById('status');
+    const timerTxt = document.getElementById('timer-txt');
+    const progressBar = document.getElementById('p-bar');
+    const resultsPanel = document.getElementById('results-panel');
+    const avgVal = document.getElementById('avg-val');
 
-    // Chart.js instance
-    let chartInstance = null;
+    let stream = null;
+    let track = null;
+    let isRunning = false;
+    let frameInterval = null;
+    let countdownInterval = null;
+    
+    let rValues = [];
+    let times = [];
+    let allValidBpms = []; // Para sacar el promedio final
+    const maxDataPoints = 120; 
+    let lastBpm = 0;
+    let timeLeft = 60;
 
-    // --- CONTROL DE PANTALLAS ---
-    document.getElementById('btn-start').addEventListener('click', startSession);
-    document.getElementById('btn-stop').addEventListener('click', stopSession);
-    document.getElementById('btn-restart').addEventListener('click', () => {
-        reportScreen.classList.add('hidden');
-        setupScreen.classList.remove('hidden');
-    });
-
-    async function startSession() {
-        // Inicializar cámara
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "environment" }
-            });
-            video.srcObject = stream;
-            await video.play();
-        } catch (err) {
-            alert("Error al acceder a la cámara. Asegúrate de dar los permisos correspondientes.");
+    startBtn.addEventListener('click', async () => {
+        if (isRunning) {
+            stopMeasurement(false);
             return;
         }
 
-        setupScreen.classList.add('hidden');
-        trainScreen.classList.remove('hidden');
+        startBtn.disabled = true;
+        resultsPanel.style.display = "none";
+        statusText.textContent = "Abriendo cámara...";
+        allValidBpms = [];
+        timeLeft = 60;
+        timerTxt.textContent = `Tiempo restante: ${timeLeft}s`;
+        progressBar.style.width = "0%";
 
-        currentPulseValues = [];
-        const durationMin = parseInt(durationSelect.value);
-        const respRate = parseInt(bpmRateSelect.value);
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: "environment",
+                    width: { ideal: 300 },
+                    height: { ideal: 300 }
+                }
+            });
 
-        startTimer(durationMin * 60);
-        startBreathingGuide(respRate);
-        startECGProcessing();
-    }
+            video.srcObject = stream;
+            track = stream.getVideoTracks()[0];
 
-    // --- TIMER ---
-    function startTimer(seconds) {
-        let remaining = seconds;
-        updateTimerDisplay(remaining);
-        
-        timerInterval = setInterval(() => {
-            remaining--;
-            updateTimerDisplay(remaining);
-            if (remaining <= 0) {
-                stopSession();
-            }
-        }, 1000);
-    }
+            // Intento de flash por si acaso
+            setTimeout(async () => {
+                try { await track.applyConstraints({ advanced: [{ torch: true }] }); } catch (e) {}
+            }, 1000);
 
-    function updateTimerDisplay(sec) {
-        const m = Math.floor(sec / 60).toString().padStart(2, '0');
-        const s = (sec % 60).toString().padStart(2, '0');
-        timerDisplay.innerText = `${m}:${s}`;
-    }
+            startBtn.textContent = "ABORTAR";
+            startBtn.disabled = false;
+            isRunning = true;
+            rValues = [];
+            times = [];
+            lastBpm = 0;
+            
+            frameInterval = setInterval(processFrame, 1000 / 30);
+            
+            // Lógica del Reloj de 1 minuto
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                timerTxt.textContent = `Tiempo restante: ${timeLeft}s`;
+                progressBar.style.width = `${((60 - timeLeft) / 60) * 100}%`;
 
-    // --- GUÍA DE RESPIRACIÓN (BOLA) ---
-    function startBreathingGuide(respPerMin) {
-        if (respPerMin === 0) {
-            // Modo Normal: animación suave por defecto
-            respPerMin = 6; 
+                if (timeLeft <= 0) {
+                    stopMeasurement(true); // Terminado con éxito
+                }
+            }, 1000);
+
+            statusText.textContent = "Coloca firmemente tu dedo cubriendo el lente.";
+
+        } catch (error) {
+            statusText.textContent = "Error de acceso a cámara trasera.";
+            startBtn.disabled = false;
         }
+    });
 
-        const cycleDurationMs = (60 / respPerMin) * 1000;
-        const halfCycle = cycleDurationMs / 2;
-        let startTime = performance.now();
-
-        function animate(time) {
-            let elapsed = (time - startTime) % cycleDurationMs;
-            let progress = elapsed / halfCycle;
-
-            if (elapsed < halfCycle) {
-                // Inhalar (Expansión)
-                let scale = 1 + (progress * 1.5);
-                breatheBall.style.transform = `scale(${scale})`;
-                breatheLabel.innerText = "Inhala";
+    function stopMeasurement(isCompleted = false) {
+        isRunning = false;
+        clearInterval(frameInterval);
+        clearInterval(countdownInterval);
+        
+        if (track) { try { track.stop(); } catch(e){} }
+        if (stream) { stream.getTracks().forEach(t => t.stop()); }
+        video.srcObject = null;
+        
+        startBtn.textContent = "INICIAR PRUEBA";
+        bpmVal.textContent = "--";
+        
+        if (isCompleted) {
+            statusText.textContent = "Ejercicio finalizado con éxito.";
+            if (allValidBpms.length > 0) {
+                const sum = allValidBpms.reduce((a, b) => a + b, 0);
+                const avg = Math.round(sum / allValidBpms.length);
+                avgVal.textContent = avg;
+                resultsPanel.style.display = "block";
             } else {
-                // Exhalar (Contracción)
-                let scale = 2.5 - ((elapsed - halfCycle) / halfCycle * 1.5);
-                breatheBall.style.transform = `scale(${scale})`;
-                breatheLabel.innerText = "Exhala";
+                statusText.textContent = "Prueba terminada, pero no se captaron suficientes datos estables. Inténtalo de nuevo presionando mejor el lente.";
             }
-
-            animFrameBreathe = requestAnimationFrame(animate);
+        } else {
+            statusText.textContent = "Medición abortada por el usuario.";
         }
-
-        animFrameBreathe = requestAnimationFrame(animate);
     }
 
-    // --- PROCESAMIENTO DE PULSO Y ECG ---
-    let ecgX = 0;
-    let lastY = 60;
+    function processFrame() {
+        if (!isRunning || video.paused || video.ended) return;
 
-    function startECGProcessing() {
-        ecgCtx.fillStyle = "#000";
-        ecgCtx.fillRect(0, 0, ecgCanvas.width, ecgCanvas.height);
-        ecgX = 0;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
 
-        function processFrame() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                captureCtx.drawImage(video, 0, 0, 30, 30);
-                const frameData = captureCtx.getImageData(0, 0, 30, 30).data;
+        let totalRed = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            totalRed += data[i];
+        }
+
+        const avgRed = totalRed / (data.length / 4);
+        rValues.push(avgRed);
+        times.push(performance.now());
+
+        if (rValues.length > maxDataPoints) {
+            rValues.shift();
+            times.shift();
+        }
+
+        if (rValues.length >= 80) {
+            calculateBPM();
+        }
+    }
+
+    function calculateBPM() {
+        let peaks = [];
+        let smoothValues = [];
+        
+        // Suavizado incrementado para amortiguar la falta de flash
+        for (let i = 3; i < rValues.length - 3; i++) {
+            let val = (rValues[i-3] + rValues[i-2] + rValues[i-1] + rValues[i] + rValues[i+1] + rValues[i+2] + rValues[i+3]) / 7;
+            smoothValues.push({val: val, time: times[i]});
+        }
+
+        for (let i = 1; i < smoothValues.length - 1; i++) {
+            if (smoothValues[i].val > smoothValues[i-1].val && smoothValues[i].val > smoothValues[i+1].val) {
+                peaks.push(smoothValues[i].time);
+            }
+        }
+
+        if (peaks.length >= 3) {
+            let intervals = [];
+            for (let i = 1; i < peaks.length; i++) {
+                intervals.push(peaks[i] - peaks[i-1]);
+            }
+            
+            const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+            let bpm = Math.round(60000 / avgInterval);
+
+            // Filtro estricto para evitar saltos locos sin flash (rango normal)
+            if (bpm >= 50 && bpm <= 150) {
+                if (lastBpm === 0) lastBpm = bpm;
                 
-                // Extraer la intensidad del canal rojo
-                let redSum = 0;
-                for (let i = 0; i < frameData.length; i += 4) {
-                    redSum += frameData[i];
-                }
-                let avgRed = redSum / (frameData.length / 4);
-
-                // Normalización simple para visualización ECG
-                currentPulseValues.push(avgRed);
-                drawECGLine(avgRed);
+                // Amortiguación fuerte: el valor nuevo solo cambia un 10% del mostrado
+                lastBpm = Math.round(lastBpm * 0.9 + bpm * 0.1);
+                
+                bpmVal.textContent = lastBpm;
+                allValidBpms.push(lastBpm); // Guardando para el promedio final
+                statusText.textContent = "Mantén el dedo bien quieto frente a una luz estable...";
             }
-            animFrameECG = requestAnimationFrame(processFrame);
         }
-
-        animFrameECG = requestAnimationFrame(processFrame);
-    }
-
-    function drawECGLine(val) {
-        // Escalar valor a la altura del canvas
-        const windowSize = 50;
-        const recent = currentPulseValues.slice(-windowSize);
-        const min = Math.min(...recent);
-        const max = Math.max(...recent);
-        
-        let normalized = (max === min) ? 0.5 : (val - min) / (max - min);
-        // Invertir para que los picos vayan hacia arriba
-        let y = ecgCanvas.height - (normalized * (ecgCanvas.height - 20) + 10);
-
-        ecgCtx.strokeStyle = "#38bdf8";
-        ecgCtx.lineWidth = 2;
-        ecgCtx.beginPath();
-        ecgCtx.moveTo(ecgX, lastY);
-        
-        ecgX += 2;
-        if (ecgX > ecgCanvas.width) {
-            ecgX = 0;
-            ecgCtx.fillStyle = "#000";
-            ecgCtx.fillRect(0, 0, ecgCanvas.width, ecgCanvas.height);
-        }
-
-        ecgCtx.lineTo(ecgX, y);
-        ecgCtx.stroke();
-        lastY = y;
-    }
-
-    // --- FINALIZACIÓN Y REPORTES ---
-    function stopSession() {
-        clearInterval(timerInterval);
-        cancelAnimationFrame(animFrameECG);
-        cancelAnimationFrame(animFrameBreathe);
-
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-        }
-
-        sessionCount++;
-        saveSessionData();
-
-        trainScreen.classList.add('hidden');
-        reportScreen.classList.remove('hidden');
-
-        renderReport();
-    }
-
-    function saveSessionData() {
-        // Muestra de datos reducida para el gráfico final
-        const samples = 100;
-        const step = Math.max(1, Math.floor(currentPulseValues.length / samples));
-        const filtered = [];
-
-        for (let i = 0; i < currentPulseValues.length; i += step) {
-            filtered.push(currentPulseValues[i]);
-        }
-
-        // Estimación básica de BPM para la tabla
-        const approxBPM = Math.floor(60 + Math.random() * 15); 
-
-        sessionData.push({
-            id: `Sesión ${sessionCount}`,
-            values: filtered,
-            bpm: approxBPM,
-            color: palette[(sessionCount - 1) % palette.length],
-            duration: timerDisplay.innerText
-        });
-    }
-
-    function renderReport() {
-        // Actualizar Tabla
-        const tbody = document.getElementById('table-body');
-        tbody.innerHTML = '';
-        
-        sessionData.forEach(s => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${s.id}</td>
-                <td style="background-color:${s.color}; width: 20px;"></td>
-                <td>${s.bpm} BPM</td>
-                <td>${s.duration}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        // Actualizar Gráfica Comparativa Multilínea
-        const ctx = document.getElementById('comparison-chart').getContext('2d');
-        
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
-
-        const datasets = sessionData.map(s => ({
-            label: s.id,
-            data: s.values,
-            borderColor: s.color,
-            borderWidth: 2,
-            fill: false,
-            tension: 0.3,
-            pointRadius: 0
-        }));
-
-        const maxPoints = Math.max(...sessionData.map(s => s.values.length));
-        const labels = Array.from({length: maxPoints}, (_, i) => i + 1);
-
-        chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: datasets
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { labels: { color: '#f8fafc' } }
-                },
-                scales: {
-                    x: { display: false },
-                    y: { 
-                        grid: { color: '#334155' },
-                        ticks: { color: '#f8fafc' } 
-                    }
-                }
-            }
-        });
     }
 </script>
 </body>
